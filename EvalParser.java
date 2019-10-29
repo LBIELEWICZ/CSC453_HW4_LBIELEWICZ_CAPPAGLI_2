@@ -153,25 +153,29 @@ public class EvalParser {
       System.exit(1);
     }
     ASTNode currNode = threeAddrId(tokens);
+    
     return currNode;
   }
 
   public ASTNode threeAddrStmtLst(LinkedList<Token> tokens) {
-    ASTNode currNode = null; //left;
+    ASTNode root = null; //left;
+    ASTNode prev = null;
     while(true) {
       if (tokens.peek() != null && tokens.peek().tokenType != Token.TokenType.CB){
         ASTNode left = threeAddrStmt(tokens);
         ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
+	if (root == null)
+	  root = list;
+        if (prev != null)
+          prev.setRight(list);
         list.setLeft(left);
-        ASTNode right = currNode;
-        list.setRight(right);
-        currNode = list;
+        prev = list;
       }
       else {
         break;
       }
     }
-    return currNode;
+    return root;
   }
 
   public ASTNode threeAddrStmt(LinkedList<Token> tokens) {
@@ -184,6 +188,7 @@ public class EvalParser {
     }
     else if (tokens.size() > 2 && tokens.get(2).tokenType == Token.TokenType.END){ // Match declaration
       currNode = threeAddrVarDecl(tokens);
+      tokens.remove(); // Remove semicolon
       this.tempID = 0;
     }
     else if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.INT || tokens.peek().tokenType == Token.TokenType.ID)){ // Match assignment type
@@ -192,7 +197,7 @@ public class EvalParser {
     }
     else {
       // Invalid statment
-      System.out.println("ERROR: Invalid statment");
+      System.out.println("ERROR: Invalid statement");
       System.exit(1);
     }
     return currNode;
@@ -366,7 +371,6 @@ public class EvalParser {
         op.setTID(this.tlabelID);
 	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
-        tempID++;
         currNode = op;
         left = currNode;
         this.tlabelID++;
@@ -383,7 +387,6 @@ public class EvalParser {
         op.setRight(right);
         op.setTID(this.tlabelID);
 	op.setFID(this.flabelID);
-        tempID++;
         currNode = op;
         left = currNode;
         this.tlabelID++;
@@ -413,7 +416,6 @@ public class EvalParser {
         op.setTID(this.tlabelID);
 	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
-        tempID++;
         currNode = op;
         left = currNode;
         this.tlabelID++;
@@ -431,7 +433,6 @@ public class EvalParser {
         op.setTID(this.tlabelID);
 	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
-        tempID++;
         currNode = op;
         left = currNode;
         this.tlabelID++;
@@ -449,7 +450,6 @@ public class EvalParser {
         op.setTID(this.tlabelID);
 	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
-        tempID++;
         currNode = op;
         left = currNode;
         this.tlabelID++;
@@ -466,7 +466,6 @@ public class EvalParser {
         op.setRight(right);
         op.setTID(this.tlabelID);
 	op.setFID(this.flabelID);
-        tempID++;
         currNode = op;
         left = currNode;
         this.tlabelID++;
@@ -686,8 +685,14 @@ public class EvalParser {
     this.tempID = 0;
     
     LinkedList<Token> tokens = scan.extractTokenList(eval);
-    
-    return postorder(threeAddrProg(tokens), "", false);
+    String ret =  postorder(threeAddrProg(tokens), "", false);
+
+    this.tlabelID = 0;
+    this.flabelID = 0;
+    this.tempID = 0;
+    this.rlabelID = 0;
+
+    return ret;
   }
   
   private String threeAddrRELOP(String op, ASTNode node, int labelID) {
