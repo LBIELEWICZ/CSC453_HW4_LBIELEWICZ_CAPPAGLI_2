@@ -18,6 +18,102 @@ public class EvalParser {
   /****************************************/
   public ASTNode threeAddrProg(LinkedList<Token> tokens) {
     ASTNode op = new ASTNode(ASTNode.NodeType.PROG); // Match program type
+    if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.PUBLIC || tokens.peek().tokenType == Token.TokenType.PRIVATE)){
+      tokens.remove();
+      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CLASS){
+        tokens.remove();
+      }
+      else {
+        // Invalid program type
+        System.out.println("ERROR: Invalid program type");
+        System.exit(1);
+      }
+    }
+    else {
+      // Invalid program type
+      System.out.println("ERROR: Invalid program type");
+      System.exit(1);
+    }
+    ASTNode left = threeAddrId(tokens); // Match ID of program
+    ASTNode currNode = left;
+    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP){
+      tokens.remove();
+      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CP){
+        tokens.remove();
+        if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
+          tokens.remove();
+          op.setLeft(left);
+          ASTNode right = threeAddrProgLst(tokens); // Match declarations and functions in program
+          op.setRight(right);
+          currNode = op;
+          left = currNode;
+          if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
+            tokens.remove();
+          }
+          else {
+            // Check brackets
+            System.out.println("ERROR1: Check brackets");
+            System.exit(1);
+          }
+        }
+        else {
+          // Check brackets
+          System.out.println("ERROR2: Check brackets");
+          System.exit(1);
+        }
+      }
+      else {
+        // Check brackets
+        System.out.println("ERROR3: Check brackets");
+        System.exit(1);
+      }
+    }
+    else {
+      // Check brackets
+      System.out.println("ERROR4: Check brackets");
+      System.exit(1);
+    }
+    return currNode;
+  }
+
+  public ASTNode threeAddrProgLst(LinkedList<Token> tokens) {
+    //ASTNode left = threeAddrStmt(tokens);
+    ASTNode currNode = null;
+    while(true) {
+      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
+        ASTNode left = threeAddrVarDecl(tokens);
+        ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
+        list.setLeft(left);
+        //todo
+        if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.END){
+          tokens.remove();
+        }
+        else {
+          // Invalid program list
+          System.out.println("ERROR: Invalid program list");
+          System.exit(1);
+        }
+        ASTNode right = currNode;
+        list.setRight(right);
+        currNode = list;
+      }
+      else if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.VOID){
+        ASTNode left = threeAddrFunc(tokens);
+        ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
+        list.setLeft(left);
+        ASTNode right = currNode;
+        list.setRight(right);
+        currNode = list;
+      }
+      else {
+        break;
+      }
+    }
+    return currNode;
+  }
+
+  public ASTNode threeAddrFunc(LinkedList<Token> tokens) {
+    ASTNode op = new ASTNode(ASTNode.NodeType.PROG); // Match program type
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.VOID){
       tokens.remove();
     }
@@ -68,18 +164,29 @@ public class EvalParser {
     return currNode;
   }
 
+  public ASTNode threeAddrVarDecl(LinkedList<Token> tokens) {
+    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
+      tokens.remove();
+    }
+    else {
+      // Invalid declaration type
+      System.out.println("ERROR: Invalid declaration type");
+      System.exit(1);
+    }
+    ASTNode currNode = threeAddrId;
+    return currNode;
+  }
+
   public ASTNode threeAddrStmtLst(LinkedList<Token> tokens) {
-    ASTNode left = threeAddrStmt(tokens);
-    ASTNode currNode = left;
+    ASTNode currNode = null; //left;
     while(true) {
-      if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.INT || 
-          tokens.peek().tokenType == Token.TokenType.IF || tokens.peek().tokenType == Token.TokenType.WHILE)){
+      if (tokens.peek() != null && tokens.peek().tokenType != Token.TokenType.CB){
+        ASTNode left = threeAddrStmt(tokens);
         ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
         list.setLeft(left);
-        ASTNode right = threeAddrStmt(tokens);
+        ASTNode right = currNode
         list.setRight(right);
         currNode = list;
-        left = currNode;
       }
       else {
         break;
@@ -91,17 +198,18 @@ public class EvalParser {
   public ASTNode threeAddrStmt(LinkedList<Token> tokens) {
     ASTNode currNode = null;
 
-    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){ // Match assignment type
-      currNode = threeAddrAssignment(tokens);
-      this.tempID = 0;
-    }
-    else if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.IF || 
+    if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.IF || 
                                        tokens.peek().tokenType == Token.TokenType.WHILE)){ // Match control flow
       currNode = threeAddrCf(tokens);
       this.tempID = 0;
     }
-    else if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB) {
-      return null;
+    else if (tokens.size() > 2 && tokens.get(2).tokenType == Token.TokenType.END){ // Match declaration
+      currNode = threeAddrVarDecl(tokens);
+      this.tempID = 0;
+    }
+    else if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.INT || tokens.peek().tokenType == Token.TokenType.ID)){ // Match assignment type
+      currNode = threeAddrAssignment(tokens);
+      this.tempID = 0;
     }
     else {
       // Invalid statment
@@ -141,7 +249,7 @@ public class EvalParser {
         tokens.remove();
         if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB) {
           if (whileFlag) {
-	    cf.setRID(this.rlabelID);
+            cf.setRID(this.rlabelID);
             this.rlabelID++;
           }
 
@@ -181,15 +289,13 @@ public class EvalParser {
 
   public ASTNode threeAddrAssignment(LinkedList<Token> tokens) {
     ASTNode op = new ASTNode(ASTNode.NodeType.ASSG);
+    ASTNode left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
-      tokens.remove();
+      left = threeAddrVarDecl(tokens);
     }
     else {
-      // Invalid assignment
-      System.out.println("ERROR: Invalid assignment");
-      System.exit(1);
+      left = threeAddrId(tokens); // Left tempID for operation three address generation
     }
-    ASTNode left = threeAddrId(tokens); // Left tempID for operation three address generation
     ASTNode currNode = left; 
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.ASSG){
       op.setVal("=");
@@ -207,11 +313,6 @@ public class EvalParser {
         System.out.println("ERROR: Invalid assignment");
         System.exit(1);
       }
-    }
-    else {
-      // Invalid assignment
-      System.out.println("ERROR: Invalid assignment");
-      System.exit(1);
     }
     return currNode;
   }
@@ -463,7 +564,7 @@ public class EvalParser {
       tokens.remove();
     }
     else {
-      System.out.println("ERROR: Invalid assignment");
+      System.out.println("ERROR: Invalid id");
       System.exit(1);
     }
     return id;
