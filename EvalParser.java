@@ -10,6 +10,7 @@ public class EvalParser {
   int flabelID = 0; // Label id for false
   int rlabelID = 0; // Label id for loops
 
+  int scope = 0;
   TreeMap<String,String> global = new TreeMap<String,String>();
   TreeMap<String,String> local = new TreeMap<String,String>();
 
@@ -66,7 +67,6 @@ public class EvalParser {
         ASTNode left = threeAddrVarDecl(tokens);
         ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
         list.setLeft(left);
-        //todo
         if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.END){
           tokens.remove();
         }
@@ -762,10 +762,12 @@ public class EvalParser {
     tacs = postorder(root.getLeft(), tacs, orFlag); 
     if (root.getType() == ASTNode.NodeType.FUNC) {
       local.clear;
+      scope++;
     }
     tacs = postorder(root.getRight(), tacs, false);
     if (root.getType() == ASTNode.NodeType.FUNC) {
       local.clear();
+      scope--;
     }
     
     if (root.getType() == ASTNode.NodeType.RELOP) {
@@ -865,7 +867,7 @@ public class EvalParser {
     else if (root.getType() == ASTNode.NodeType.ASSG) {
       if (root.getRight().getType() == ASTNode.NodeType.ID){
         str = root.getLeft().getVal();
-        if (local.containsKey(str)){
+        if (local.containsKey(str) || (scope == 0 && global.containsKey(str))){
           System.out.println("ERROR: Multiple declarations");
           System.exit(1);
         }
