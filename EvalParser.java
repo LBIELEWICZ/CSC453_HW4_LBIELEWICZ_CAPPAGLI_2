@@ -12,6 +12,13 @@ public class EvalParser {
 
   Token.TokenType last;
 
+  private enum SymbolType {
+    INT,VOID,CLASS;
+  }
+
+  TreeMap<String,SymbolType> globalSymTab;
+  TreeMap<String,SymbolType> localSymTab;
+
   /***************** Three Address Translator ***********************/
   // TODO #2 Continued: Write the functions for E/E', T/T', and F. Return the temporary ID associated with each subexpression and
   //                    build the threeAddressResult string with your three address translation 
@@ -34,7 +41,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid program type");
       System.exit(1);
     }
-    ASTNode left = threeAddrId(tokens); // Match ID of program
+    ASTNode left = threeAddrId(tokens,true); // Match ID of program
     ASTNode currNode = left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
       tokens.remove();
@@ -60,7 +67,7 @@ public class EvalParser {
     ASTNode currNode = null;
     while(true) {
       if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
-        ASTNode left = threeAddrVarDecl(tokens);
+        ASTNode left = threeAddrVarDecl(tokens, true);
         ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
         list.setLeft(left);
         //todo
@@ -101,7 +108,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid program type");
       System.exit(1);
     }
-    ASTNode left = threeAddrId(tokens); // Match ID of program
+    ASTNode left = threeAddrId(tokens,true); // Match ID of program
     ASTNode currNode = left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP){
       tokens.remove();
@@ -143,7 +150,7 @@ public class EvalParser {
     return currNode;
   }
 
-  public ASTNode threeAddrVarDecl(LinkedList<Token> tokens) {
+  public ASTNode threeAddrVarDecl(LinkedList<Token> tokens, boolean globalFlag) {
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
       tokens.remove();
     }
@@ -152,7 +159,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid declaration type");
       System.exit(1);
     }
-    ASTNode currNode = threeAddrId(tokens);
+    ASTNode currNode = threeAddrId(tokens, globalFlag);
     
     return currNode;
   }
@@ -187,12 +194,12 @@ public class EvalParser {
       this.tempID = 0;
     }
     else if (tokens.size() > 2 && tokens.get(2).tokenType == Token.TokenType.END){ // Match declaration
-      currNode = threeAddrVarDecl(tokens);
+      currNode = threeAddrVarDecl(tokens, false);
       tokens.remove(); // Remove semicolon
       this.tempID = 0;
     }
     else if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.INT || tokens.peek().tokenType == Token.TokenType.ID)){ // Match assignment type
-      currNode = threeAddrAssignment(tokens);
+      currNode = threeAddrAssignment(tokens, false);
       this.tempID = 0;
     }
     else {
@@ -226,6 +233,12 @@ public class EvalParser {
       tokens.remove();
       
       cf.setLeft(threeAddrC(tokens));
+      if (cf.getLeft().getType() == ASTNode.NodeType.AND) {
+        setCompIDs(cf.getLeft(), this.tlabelID, true);
+      }
+      else if (cf.getLeft().getType() == ASTNode.NodeType.OR)
+        setCompIDs(cf.getLeft(), this.flabelID, false);
+
       this.tempID = 0;
       cf.setVal("" + last);
       if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CP) {
@@ -273,14 +286,14 @@ public class EvalParser {
     return currNode;
   }
 
-  public ASTNode threeAddrAssignment(LinkedList<Token> tokens) {
+  public ASTNode threeAddrAssignment(LinkedList<Token> tokens, boolean globalFlag) {
     ASTNode op = new ASTNode(ASTNode.NodeType.ASSG);
     ASTNode left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
-      left = threeAddrVarDecl(tokens);
+      left = threeAddrVarDecl(tokens, globalFlag);
     }
     else {
-      left = threeAddrId(tokens); // Left tempID for operation three address generation
+      left = threeAddrId(tokens, globalFlag); // Left tempID for operation three address generation
     }
     ASTNode currNode = left; 
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.ASSG){
@@ -288,6 +301,13 @@ public class EvalParser {
       op.setLeft(left);
       tokens.remove();
       ASTNode right = threeAddrC(tokens);
+
+      if (right.getType() == ASTNode.NodeType.AND){
+        setCompIDs(right, this.tlabelID, true);
+      }
+      else if (right.getType() == ASTNode.NodeType.OR)
+        setCompIDs(right, this.flabelID, false);
+
       op.setRight(right);
       currNode = op;
       left = currNode;
@@ -303,6 +323,28 @@ public class EvalParser {
     return currNode;
   }
   
+  private int setCompIDs(ASTNode root, int labelID, boolean andFlag) {
+    if (root == null)
+      return labelID;
+    
+    if (root.getType() == ASTNode.NodeType.RELOP) {
+      if (andFlag) {
+        root.setTID(--labelID);
+      }
+      else
+        root.setFID(--labelID);
+    }
+    else if (root.getType() == ASTNode.NodeType.AND) {
+      labelID = setCompIDs(root.getLeft(), labelID, true);
+      labelID = setCompIDs(root.getRight(), labelID, true);
+    }
+    else if (root.getType() == ASTNode.NodeType.OR) {
+      labelID = setCompIDs(root.getLeft(), labelID, false);
+      labelID = setCompIDs(root.getRight(), labelID, false);
+    }
+    return labelID;
+  }
+ 
   public ASTNode threeAddrC(LinkedList<Token> tokens) {
     ASTNode left = threeAddrS(tokens);
     ASTNode currNode = left; 
@@ -593,7 +635,7 @@ public class EvalParser {
     return currNode;
   }
 
-  public ASTNode threeAddrId(LinkedList<Token> tokens) {
+  public ASTNode threeAddrId(LinkedList<Token> tokens, boolean globalFlag) {
     ASTNode id = new ASTNode(ASTNode.NodeType.ID);
     
     // Create a node that holds the name of the ID
@@ -686,6 +728,9 @@ public class EvalParser {
     
     LinkedList<Token> tokens = scan.extractTokenList(eval);
  
+    globalSymTab = new TreeMap<>();
+    localSymTab = new TreeMap<>();
+
     LinkedList<TACObject> tacs = new LinkedList<TACObject>();
     tacs = postorder(threeAddrProg(tokens), tacs, false);
     
@@ -745,8 +790,11 @@ public class EvalParser {
       orFlag = true;
     } 
 
-    tacs = postorder(root.getLeft(), tacs, orFlag); 
-    tacs = postorder(root.getRight(), tacs, false);
+    tacs = postorder(root.getLeft(), tacs, orFlag);
+    if (root.getRight() != null && root.getRight().getType() == ASTNode.NodeType.OR)
+      tacs = postorder(root.getRight(), tacs, true);
+    else
+      tacs = postorder(root.getRight(), tacs, false);
     
     if (root.getType() == ASTNode.NodeType.RELOP) {
       if (root.getVal().equals("<")) {

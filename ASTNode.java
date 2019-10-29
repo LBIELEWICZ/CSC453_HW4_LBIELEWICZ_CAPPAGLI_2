@@ -1,7 +1,7 @@
 public class ASTNode {
 	
 	public enum NodeType {
-		OP, NUM, ID, IF, WHILE, ASSG, LIST, PROG, RELOP, COMP;
+		OP, NUM, ID, IF, WHILE, ASSG, LIST, PROG, RELOP, AND, OR;
 	}
 	
 	private ASTNode left = null;
