@@ -687,7 +687,7 @@ public class EvalParser {
     LinkedList<Token> tokens = scan.extractTokenList(eval);
  
     LinkedList<TACObject> tacs = new LinkedList<TACObject>();
-    tacs = postorder(threeAddrProg(tokens), tacs);
+    tacs = postorder(threeAddrProg(tokens), tacs, false);
     
     this.tlabelID = 0;
     this.flabelID = 0;
@@ -699,9 +699,9 @@ public class EvalParser {
   }
   
   private TACObject threeAddrRELOP(TACObject.OpType op, ASTNode node, int labelID) {
-    String str1;
-    String str2;
-    String str3;
+    String str1 = null;
+    String str2 = null;
+    String str3 = null;
     
     if (node.getLeft().getType() == ASTNode.NodeType.OP || node.getLeft().getType() == ASTNode.NodeType.NUM)
       str1 = "temp" + node.getLeft().getID();
@@ -732,7 +732,7 @@ public class EvalParser {
       return tacs;
     }
 
-    String str;
+    String str = "";
     TACObject obj;
 
     if (root.getType() == ASTNode.NodeType.WHILE) {
@@ -749,28 +749,28 @@ public class EvalParser {
     tacs = postorder(root.getRight(), tacs, false);
     
     if (root.getType() == ASTNode.NodeType.RELOP) {
-      if (root.getLeft().getVal().equals("<")) {
-        obj = threeAddrRELOP(TACObject.OpType.IF_LT, root.getLeft(), root.getID());
+      if (root.getVal().equals("<")) {
+        obj = threeAddrRELOP(TACObject.OpType.IF_LT, root, root.getTID());
         tacs.add(obj);
       }
-      else if (root.getLeft().getVal().equals(">")) {
-        obj = threeAddrRELOP(TACObject.OpType.IF_GT, root.getLeft(), root.getID());
+      else if (root.getVal().equals(">")) {
+        obj = threeAddrRELOP(TACObject.OpType.IF_GT, root, root.getTID());
         tacs.add(obj);
       }
-      else if (root.getLeft().getVal().equals("<=")) {
-        obj = threeAddrRELOP(TACObject.OpType.IF_LTE, root.getLeft(), root.getID());
+      else if (root.getVal().equals("<=")) {
+        obj = threeAddrRELOP(TACObject.OpType.IF_LTE, root, root.getTID());
         tacs.add(obj);
       }
-      else if (root.getLeft().getVal().equals(">=")) {
-        obj = threeAddrRELOP(TACObject.OpType.IF_GTE, root.getLeft(), root.getID());
+      else if (root.getVal().equals(">=")) {
+        obj = threeAddrRELOP(TACObject.OpType.IF_GTE, root, root.getTID());
         tacs.add(obj);
       }
-      else if (root.getLeft().getVal().equals("==")) {
-        obj = threeAddrRELOP(TACObject.OpType.IF_EQ, root.getLeft(), root.getID());
+      else if (root.getVal().equals("==")) {
+        obj = threeAddrRELOP(TACObject.OpType.IF_EQ, root, root.getTID());
         tacs.add(obj);
       }
-      else if (root.getLeft().getVal().equals("!=")) {
-        obj = threeAddrRELOP(TACObject.OpType.IF_NE, root.getLeft(), root.getID());
+      else if (root.getVal().equals("!=")) {
+        obj = threeAddrRELOP(TACObject.OpType.IF_NE, root, root.getTID());
         tacs.add(obj);
       }
 
@@ -796,9 +796,6 @@ public class EvalParser {
       orFlag = true;
     } 
 
-    tacs = postorder(root.getLeft(), tacs, orFlag); 
-    tacs = postorder(root.getRight(), tacs, false);
-
     String str1;
     String str2;
     if (root.getType() == ASTNode.NodeType.OP) {
@@ -808,7 +805,7 @@ public class EvalParser {
       else
         str1 = "temp" + root.getLeft().getID();
 
-      TACObject.OpType ot;
+      TACObject.OpType ot = null;
       if (root.getVal() == "+") {
         ot = TACObject.OpType.PLUS;
       }
@@ -826,7 +823,7 @@ public class EvalParser {
         str2 = root.getRight().getVal();
       else
         str2 = "temp" + root.getRight().getID();
-      obj = new TACObject(op, str1, str2, str);
+      obj = new TACObject(ot, str1, str2, str);
       tacs.add(obj);
     }
     else if (root.getType() == ASTNode.NodeType.NUM) {
