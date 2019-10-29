@@ -41,8 +41,58 @@ public class MoreJavaTest{
     System.out.println("*******************************************");
   }
 
+  public static void MoreTestThreeAddrGen(){
+    System.out.println("*******************************************");
+    System.out.println("More Testing Three Address Generation");
+
+    parser = new MoreJava();
+    eval = "public class test { void mainEntry() { int res = 14; if(2 < 3 || 9 < 10) {res = 42;} res = res + 1; }}";
+    result = "temp0 = 14\n"+
+             "res = temp0\n"+
+             "temp0 = 2\n"+
+             "temp1 = 3\n"+
+             "IF_LT: temp0, temp1, trueLabel0\n"+
+             "GOTO: falseLabel1\n"+
+             "falseLabel1\n"+
+             "temp2 = 9\n"+
+             "temp3 = 10\n"+
+             "IF_LT: temp2, temp3, trueLabel0\n"+
+             "GOTO: falseLabel0\n"+
+             "trueLabel0\n"+
+             "temp0 = 42\n"+
+             "res = temp0\n"+
+             "falseLabel0\n"+
+             "temp0 = 1\n"+
+             "temp1 = res + temp0\n"+
+             "res = temp1\n";
+    assert(parser.getThreeAddr(eval).equals(result));
+
+    parser = new MoreJava();
+    eval = "public class test {int x; int y; void mainEntry(){ int into; into = 3; if(2 < 3 && 5 < 4){ into = 42; }}}";
+    result = "temp0 = 3\n"+
+             "into = temp0\n"+
+             "temp0 = 2\n"+
+             "temp1 = 3\n"+
+             "IF_LT: temp0, temp1, trueLabel1\n"+
+             "GOTO: falseLabel0\n"+
+             "trueLabel1\n"+
+             "temp2 = 5\n"+
+             "temp3 = 4\n"+
+             "IF_LT: temp2, temp3, trueLabel0\n"+
+             "GOTO: falseLabel0\n"+
+             "trueLabel0\n"+
+             "temp0 = 42\n"+
+             "into = temp0\n"+
+             "falseLabel0\n";
+    assert(parser.getThreeAddr(eval).equals(result));
+
+    System.out.println("Congrats: more three address generation tests passed!");
+    System.out.println("*******************************************");
+  }
+
   public static void main(String[] args){
     TestThreeAddrGen();
+    MoreTestThreeAddrGen();
   }
 
 }

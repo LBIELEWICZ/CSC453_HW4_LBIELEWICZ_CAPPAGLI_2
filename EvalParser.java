@@ -10,6 +10,9 @@ public class EvalParser {
   int flabelID = 0; // Label id for false
   int rlabelID = 0; // Label id for loops
 
+  TreeMap<String,String> global = new TreeMap<String,String>();
+  TreeMap<String,String> local = new TreeMap<String,String>();
+
   Token.TokenType last;
 
   /***************** Three Address Translator ***********************/
@@ -92,7 +95,7 @@ public class EvalParser {
   }
 
   public ASTNode threeAddrFunc(LinkedList<Token> tokens) {
-    ASTNode op = new ASTNode(ASTNode.NodeType.PROG); // Match program type
+    ASTNode op = new ASTNode(ASTNode.NodeType.FUNC); // Match program type
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.VOID){
       tokens.remove();
     }
@@ -683,6 +686,7 @@ public class EvalParser {
   /* TODO #2: Now add three address translation to your parser*/
   public LinkedList<TACObject> getThreeAddr(String eval){
     this.tempID = 0;
+    global.clear;
     
     LinkedList<Token> tokens = scan.extractTokenList(eval);
  
@@ -705,8 +709,13 @@ public class EvalParser {
     
     if (node.getLeft().getType() == ASTNode.NodeType.OP || node.getLeft().getType() == ASTNode.NodeType.NUM)
       str1 = "temp" + node.getLeft().getID();
-    else if (node.getLeft().getType() == ASTNode.NodeType.ID)
+    else if (node.getLeft().getType() == ASTNode.NodeType.ID){
       str1 = node.getLeft().getVal();
+      if (!local.containsKey(str1) && !global.containsKey(str1)){
+        System.out.println("ERROR: Undifined variable");
+        System.exit(1);
+      }
+    }
     else {
       System.out.println("ERROR: Type error in RELOP");
       System.exit(1);
@@ -714,8 +723,13 @@ public class EvalParser {
     
     if (node.getRight().getType() == ASTNode.NodeType.OP || node.getRight().getType() == ASTNode.NodeType.NUM)
       str2 = "temp" + node.getRight().getID();
-    else if (node.getRight().getType() == ASTNode.NodeType.ID)
+    else if (node.getRight().getType() == ASTNode.NodeType.ID){
       str2 = node.getRight().getVal();
+      if (!local.containsKey(str2) && !global.containsKey(str2)){
+        System.out.println("ERROR: Undifined variable");
+        System.exit(1);
+      }
+    }
     else {
       System.out.println("ERROR: Type error in RELOP");
       System.exit(1);
@@ -736,7 +750,7 @@ public class EvalParser {
     TACObject obj;
 
     if (root.getType() == ASTNode.NodeType.WHILE) {
-      str += "repeatLabel" + root.getRID();
+      str = "repeatLabel" + root.getRID();
       obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
       tacs.add(obj);
     }
@@ -746,7 +760,13 @@ public class EvalParser {
     } 
 
     tacs = postorder(root.getLeft(), tacs, orFlag); 
+    if (root.getType() == ASTNode.NodeType.FUNC) {
+      local.clear;
+    }
     tacs = postorder(root.getRight(), tacs, false);
+    if (root.getType() == ASTNode.NodeType.FUNC) {
+      local.clear();
+    }
     
     if (root.getType() == ASTNode.NodeType.RELOP) {
       if (root.getVal().equals("<")) {
@@ -800,8 +820,13 @@ public class EvalParser {
     String str2;
     if (root.getType() == ASTNode.NodeType.OP) {
       str = "temp" + root.getID();
-      if (root.getLeft().getType() == ASTNode.NodeType.ID)
+      if (root.getLeft().getType() == ASTNode.NodeType.ID){
         str1 = root.getLeft().getVal();
+        if (!local.containsKey(str1) && !global.containsKey(str1)){
+          System.out.println("ERROR: Undifined variable");
+          System.exit(1);
+        }
+      }
       else
         str1 = "temp" + root.getLeft().getID();
 
@@ -819,8 +844,13 @@ public class EvalParser {
         ot = TACObject.OpType.DIV;
       }
 
-      if (root.getRight().getType() == ASTNode.NodeType.ID)
+      if (root.getRight().getType() == ASTNode.NodeType.ID){
         str2 = root.getRight().getVal();
+        if (!local.containsKey(str2) && !global.containsKey(str2)){
+          System.out.println("ERROR: Undifined variable");
+          System.exit(1);
+        }
+      }
       else
         str2 = "temp" + root.getRight().getID();
       obj = new TACObject(ot, str1, str2, str);
@@ -835,6 +865,10 @@ public class EvalParser {
     else if (root.getType() == ASTNode.NodeType.ASSG) {
       if (root.getRight().getType() == ASTNode.NodeType.ID){
         str = root.getLeft().getVal();
+        if (local.containsKey(str)){
+          System.out.println("ERROR: Multiple declarations");
+          System.exit(1);
+        }
         str1 = root.getRight().getVal();
       }
       else{
