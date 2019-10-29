@@ -213,6 +213,16 @@ public class Scanner{
       itr++;
     }
 
+    else if (stream.length() > 1 && stream.substring(itr,itr+2).equals("&&")) {
+      ret = new Token(Token.TokenType.AND, "&&");
+      itr = itr + 2;
+    }
+
+    else if (stream.length() > 1 && stream.substring(itr,itr+2).equals("||")) {
+      ret = new Token(Token.TokenType.OR, "||");
+      itr = itr + 2;
+    }
+
     // Handling invalid characters
     else {
       System.out.println("ERROR: Invalid character '" + tokChar + "'in " + stream + ". Exiting program.");
