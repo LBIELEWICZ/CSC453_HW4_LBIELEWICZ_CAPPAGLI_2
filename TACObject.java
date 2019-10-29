@@ -58,5 +58,6 @@ public class TACObject {
 		else if(op == OpType.LABLE){
 			str = src1 + "\n";
 		}
+		return str;
 	}
 }
