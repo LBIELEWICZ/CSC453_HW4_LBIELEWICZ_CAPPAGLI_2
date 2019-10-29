@@ -17,7 +17,7 @@ public class EvalParser {
   //                    build the threeAddressResult string with your three address translation 
   /****************************************/
   public ASTNode threeAddrProg(LinkedList<Token> tokens) {
-    ASTNode op = new ASTNode(ASTNode.NodeType.PROG);
+    ASTNode op = new ASTNode(ASTNode.NodeType.PROG); // Match program type
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.VOID){
       tokens.remove();
     }
@@ -26,8 +26,8 @@ public class EvalParser {
       System.out.println("ERROR: Invalid program type");
       System.exit(1);
     }
-    ASTNode left = threeAddrId(tokens); // Left tempID for operation three address generation
-    ASTNode currNode = left; 
+    ASTNode left = threeAddrId(tokens); // Match ID of program
+    ASTNode currNode = left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP){
       tokens.remove();
       if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CP){
@@ -35,7 +35,7 @@ public class EvalParser {
         if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
           tokens.remove();
           op.setLeft(left);
-          ASTNode right = threeAddrStmtLst(tokens);
+          ASTNode right = threeAddrStmtLst(tokens); // Match statements in program
           op.setRight(right);
           currNode = op;
           left = currNode;
@@ -91,12 +91,12 @@ public class EvalParser {
   public ASTNode threeAddrStmt(LinkedList<Token> tokens) {
     ASTNode currNode = null;
 
-    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
+    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){ // Match assignment type
       currNode = threeAddrAssignment(tokens);
       this.tempID = 0;
     }
     else if (tokens.peek() != null && (tokens.peek().tokenType == Token.TokenType.IF || 
-                                       tokens.peek().tokenType == Token.TokenType.WHILE)){
+                                       tokens.peek().tokenType == Token.TokenType.WHILE)){ // Match control flow
       currNode = threeAddrCf(tokens);
       this.tempID = 0;
     }
