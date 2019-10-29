@@ -790,8 +790,8 @@ public class EvalParser {
       orFlag = true;
     } 
 
-    str = postorder(root.getLeft(), str, orFlag); 
-    str = postorder(root.getRight(), str, false);
+    tacs = postorder(root.getLeft(), tacs, orFlag); 
+    tacs = postorder(root.getRight(), tacs, false);
 
     String str1;
     String str2;
@@ -802,7 +802,6 @@ public class EvalParser {
       else
         str1 = "temp" + root.getLeft().getID();
 
-      //str += " " + root.getVal() + " ";
       TACObject.OpType ot;
       if (root.getVal() == "+") {
         ot = TACObject.OpType.PLUS;
