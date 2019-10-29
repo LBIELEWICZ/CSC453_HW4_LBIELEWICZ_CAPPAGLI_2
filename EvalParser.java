@@ -38,7 +38,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid program type");
       System.exit(1);
     }
-    ASTNode left = threeAddrId(tokens); // Match ID of program
+    ASTNode left = threeAddrId(tokens, true); // Match ID of program
     ASTNode currNode = left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
       tokens.remove();
@@ -49,18 +49,17 @@ public class EvalParser {
       left = currNode;
       if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
         tokens.remove();
-      }//
+      }
       else {
         // Check brackets
         System.out.println("ERROR1: Check brackets");
         System.exit(1);
       }
     }
-    return currNode;//
+    return currNode;
   }
 
   public ASTNode threeAddrProgLst(LinkedList<Token> tokens) {
-    //ASTNode left = threeAddrStmt(tokens);
     ASTNode currNode = null;
     while(true) {
       if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.INT){
@@ -104,7 +103,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid program type");
       System.exit(1);
     }
-    ASTNode left = threeAddrId(tokens); // Match ID of program
+    ASTNode left = threeAddrId(tokens, true); // Match ID of function
     ASTNode currNode = left;
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP){
       tokens.remove();
@@ -112,11 +111,13 @@ public class EvalParser {
         tokens.remove();
         if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
           tokens.remove();
+          //scope++;
           op.setLeft(left);
           ASTNode right = threeAddrStmtLst(tokens); // Match statements in program
           op.setRight(right);
           currNode = op;
           left = currNode;
+          //scope--;
           if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
             tokens.remove();
           }
@@ -155,7 +156,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid declaration type");
       System.exit(1);
     }
-    ASTNode currNode = threeAddrId(tokens);
+    ASTNode currNode = threeAddrId(tokens, true); // match declare variable
     
     return currNode;
   }
@@ -283,7 +284,7 @@ public class EvalParser {
       left = threeAddrVarDecl(tokens);
     }
     else {
-      left = threeAddrId(tokens); // Left tempID for operation three address generation
+      left = threeAddrId(tokens, false); // Left tempID for operation three address generation
     }
     ASTNode currNode = left; 
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.ASSG){
@@ -596,8 +597,9 @@ public class EvalParser {
     return currNode;
   }
 
-  public ASTNode threeAddrId(LinkedList<Token> tokens) {
+  public ASTNode threeAddrId(LinkedList<Token> tokens, boolean declaration) {
     ASTNode id = new ASTNode(ASTNode.NodeType.ID);
+    id.setDec(declaration);
     
     // Create a node that holds the name of the ID
     if (tokens.peek().tokenType == Token.TokenType.ID) {
@@ -824,7 +826,11 @@ public class EvalParser {
       str = "temp" + root.getID();
       if (root.getLeft().getType() == ASTNode.NodeType.ID){
         str1 = root.getLeft().getVal();
-        if (!local.containsKey(str1) && !global.containsKey(str1)){
+        if (root.getLeft().getDec() && (local.containsKey(str) || (scope == 0 && global.containsKey(str)))){
+          System.out.println("ERROR: Multiple declarations");
+          System.exit(1);
+        }
+        else if (!root.getLeft().getDec() && !local.containsKey(str1) && !global.containsKey(str1)){
           System.out.println("ERROR: Undifined variable");
           System.exit(1);
         }
@@ -848,7 +854,11 @@ public class EvalParser {
 
       if (root.getRight().getType() == ASTNode.NodeType.ID){
         str2 = root.getRight().getVal();
-        if (!local.containsKey(str2) && !global.containsKey(str2)){
+        if (root.getRight().getDec() && (local.containsKey(str) || (scope == 0 && global.containsKey(str)))){
+          System.out.println("ERROR: Multiple declarations");
+          System.exit(1);
+        }
+        else if (!root.getRight().getDec() &&!local.containsKey(str2) && !global.containsKey(str2)){
           System.out.println("ERROR: Undifined variable");
           System.exit(1);
         }
@@ -867,8 +877,12 @@ public class EvalParser {
     else if (root.getType() == ASTNode.NodeType.ASSG) {
       if (root.getRight().getType() == ASTNode.NodeType.ID){
         str = root.getLeft().getVal();
-        if (local.containsKey(str) || (scope == 0 && global.containsKey(str))){
+        if (root.getLeft().getDec() && (local.containsKey(str) || (scope == 0 && global.containsKey(str)))){
           System.out.println("ERROR: Multiple declarations");
+          System.exit(1);
+        }
+        else if (!root.getLeft().getDec() && !local.containsKey(str1) && !global.containsKey(str1)){
+          System.out.println("ERROR: Undifined variable");
           System.exit(1);
         }
         str1 = root.getRight().getVal();

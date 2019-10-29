@@ -13,6 +13,7 @@ public class ASTNode {
 	private int fID;
 	private int rID;
 	private int cID;
+	private boolean dec;
 
 	public ASTNode(ASTNode.NodeType type) {
 		this.type = type;
@@ -54,6 +55,10 @@ public class ASTNode {
 		return cID;
 	}
 
+	public boolean getDec() {
+		return dec;
+	}
+
 	public void setVal(String val) {
 		this.val = val;
 	}
@@ -84,5 +89,9 @@ public class ASTNode {
 
 	public void setCID(int cID) {
 		this.cID = cID;
+	}
+
+	public void setDec(int dec) {
+		this.dec = dec;
 	}
 }
