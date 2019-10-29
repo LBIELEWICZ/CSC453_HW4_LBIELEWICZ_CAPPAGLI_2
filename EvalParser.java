@@ -643,102 +643,156 @@ public class EvalParser {
   }
 
   /* TODO #2: Now add three address translation to your parser*/
-  public String getThreeAddr(String eval){
+  public LinkedList<TACObject> getThreeAddr(String eval){
     this.tempID = 0;
     
     LinkedList<Token> tokens = scan.extractTokenList(eval);
+    LinkedList<TACObject> tacs = new LinkedList<TACObject>();
+    tacs = postorder(threeAddrProg(tokens), tacs);
     
-    return postorder(threeAddrProg(tokens), "");
+    return tacs;
   }
   
-  private String threeAddrRELOP(String op, ASTNode node, int labelID) {
-    String ret = "IF_" + op + ": ";
+  private TACObject threeAddrRELOP(TACObject.OpType op, ASTNode node, int labelID) {
+    String str1;
+    String str2;
+    String str3;
     
     if (node.getLeft().getType() == ASTNode.NodeType.OP || node.getLeft().getType() == ASTNode.NodeType.NUM)
-      ret += "temp" + node.getLeft().getID() + ", ";
+      str1 = "temp" + node.getLeft().getID();
     else if (node.getLeft().getType() == ASTNode.NodeType.ID)
-      ret += node.getLeft().getVal() + ", ";
+      str1 = node.getLeft().getVal();
     else {
       System.out.println("ERROR: Type error in RELOP");
       System.exit(1);
     }
     
     if (node.getRight().getType() == ASTNode.NodeType.OP || node.getRight().getType() == ASTNode.NodeType.NUM)
-      ret += "temp" + node.getRight().getID() + ", ";
+      str2 = "temp" + node.getRight().getID();
     else if (node.getRight().getType() == ASTNode.NodeType.ID)
-      ret += node.getRight().getVal() + ", ";
+      str2 = node.getRight().getVal();
     else {
       System.out.println("ERROR: Type error in RELOP");
       System.exit(1);
     }
 
-    ret += "trueLabel" + labelID + "\n";
+    str3 = "trueLabel" + labelID;
+    TACObject ret = new TACObject(op, str1, str2, str3);
     return ret;
   }
 
-  private String postorder(ASTNode root, String str) {
+  private LinkedList<TACObject> postorder(ASTNode root, LinkedList<TACObject> tacs) {
     if (root == null) {
-      return str;
+      return tacs;
     }
+
+    String str;
+    TACObject obj;
 
     if (root.getType() == ASTNode.NodeType.WHILE) {
-      str += "repeatLabel" + root.getRID() + "\n";
+      str += "repeatLabel" + root.getRID();
+      obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
+      tacs.add(obj);
     }
 
-    str = postorder(root.getLeft(), str);
+    tacs = postorder(root.getLeft(), tacs);
     if (root.getType() == ASTNode.NodeType.IF || root.getType() == ASTNode.NodeType.WHILE) {
       if (root.getLeft().getVal().equals("<")) {
-        str += threeAddrRELOP("LT", root.getLeft(), root.getID());
+        obj = threeAddrRELOP(TACObject.OpType.IF_LT, root.getLeft(), root.getID());
+        tacs.add(obj);
       }
       else if (root.getLeft().getVal().equals(">")) {
-        str += threeAddrRELOP("GT", root.getLeft(), root.getID());
+        obj = threeAddrRELOP(TACObject.OpType.IF_GT, root.getLeft(), root.getID());
+        tacs.add(obj);
       }
       else if (root.getLeft().getVal().equals("<=")) {
-        str += threeAddrRELOP("LTE", root.getLeft(), root.getID());
+        obj = threeAddrRELOP(TACObject.OpType.IF_LTE, root.getLeft(), root.getID());
+        tacs.add(obj);
       }
       else if (root.getLeft().getVal().equals(">=")) {
-        str += threeAddrRELOP("GTE", root.getLeft(), root.getID());
+        obj = threeAddrRELOP(TACObject.OpType.IF_GTE, root.getLeft(), root.getID());
+        tacs.add(obj);
       }
       else if (root.getLeft().getVal().equals("==")) {
-        str += threeAddrRELOP("EQ", root.getLeft(), root.getID());
+        obj = threeAddrRELOP(TACObject.OpType.IF_EQ, root.getLeft(), root.getID());
+        tacs.add(obj);
       }
       else if (root.getLeft().getVal().equals("!=")) {
-        str += threeAddrRELOP("NE", root.getLeft(), root.getID());
+        obj = threeAddrRELOP(TACObject.OpType.IF_NE, root.getLeft(), root.getID());
+        tacs.add(obj);
       }
-      str += "GOTO: falseLabel" + root.getID() + "\n";
-      str += "trueLabel" + root.getID() + "\n";
+      str = "falseLabel" + root.getID();
+      obj = new TACObject(TACObject.OpType.GOTO, null, null, str);
+      tacs.add(obj);
+      str = "trueLabel" + root.getID();
+      obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
+      tacs.add(obj);
     }
 
-    str = postorder(root.getRight(), str);
+    tacs = postorder(root.getRight(), tacs);
+    String str1;
+    String str2;
     if (root.getType() == ASTNode.NodeType.OP) {
-      str += "temp" + root.getID() + " = ";
+      str = "temp" + root.getID(); // + " = ";
       if (root.getLeft().getType() == ASTNode.NodeType.ID)
-        str += root.getLeft().getVal();
+        str1 = root.getLeft().getVal();
       else
-        str += "temp" + root.getLeft().getID();
-      str += " " + root.getVal() + " ";
+        str1 = "temp" + root.getLeft().getID();
+
+      //str += " " + root.getVal() + " ";
+      TACObject.OpType ot;
+      if (root.getVal() == "+") {
+        ot = TACObject.OpType.PLUS;
+      }
+      else if (root.getVal() == "-") {
+        ot = TACObject.OpType.MINUS;
+      }
+      else if (root.getVal() == "*") {
+        ot = TACObject.OpType.MUL;
+      }
+      else if (root.getVal() == "/") {
+        ot = TACObject.OpType.DIV;
+      }
+
       if (root.getRight().getType() == ASTNode.NodeType.ID)
-        str += root.getRight().getVal() + "\n";
+        str2 = root.getRight().getVal();
       else
-        str += "temp" + root.getRight().getID() + "\n";
+        str2 = "temp" + root.getRight().getID();
+      obj = new TACObject(op, str1, str2, str);
+      tacs.add(obj);
     }
     else if (root.getType() == ASTNode.NodeType.NUM) {
-      str += "temp" + root.getID() + " = " + root.getVal() + "\n";
+      str = "temp" + root.getID();
+      str1 =  root.getVal();
+      obj = new TACObject(TACObject.OpType.ASSIGN, str1, null, str);
+      tacs.add(obj);
     }
     else if (root.getType() == ASTNode.NodeType.ASSG) {
-      if (root.getRight().getType() == ASTNode.NodeType.ID)
-        str += root.getLeft().getVal() + " = " + root.getRight().getVal() + "\n";
-      else
-        str += root.getLeft().getVal() + " = temp" + root.getRight().getID() + "\n";
+      if (root.getRight().getType() == ASTNode.NodeType.ID){
+        str = root.getLeft().getVal();
+        str1 = root.getRight().getVal();
+      }
+      else{
+        str = root.getLeft().getVal();
+        str1 = "temp" + root.getRight().getID();
+      }
+      obj = new TACObject(TACObject.OpType.ASSIGN, str1, null, str);
+      tacs.add(obj);
     }
     else if (root.getType() == ASTNode.NodeType.IF) {
-      str += "falseLabel" + root.getID() + "\n";
+      str = "falseLabel" + root.getID();
+      obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
+      tacs.add(obj);
     }
     else if (root.getType() == ASTNode.NodeType.WHILE) {
-      str += "GOTO: repeatLabel" + root.getRID() + "\n";
-      str += "falseLabel" + root.getID() + "\n";
+      str = "repeatLabel" + root.getRID();
+      obj = new TACObject(TACObject.OpType.GOTO, null, null, str);
+      tacs.add(obj);
+      str = "falseLabel" + root.getID();
+      obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
+      tacs.add(obj);
     }
-    return str;
+    return tacs;
   }
 
 }
