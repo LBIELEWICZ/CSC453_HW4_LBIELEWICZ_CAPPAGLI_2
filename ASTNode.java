@@ -1,7 +1,7 @@
 public class ASTNode {
 	
 	public enum NodeType {
-		OP, NUM, ID, IF, WHILE, ASSG, LIST, PROG, RELOP;
+		OP, NUM, ID, IF, WHILE, ASSG, LIST, PROG, RELOP, COMP;
 	}
 	
 	private ASTNode left = null;
@@ -9,7 +9,10 @@ public class ASTNode {
 	private String val = null;
 	private NodeType type;
 	private int id;
-        private int rID;
+        private int tID;
+	private int fID;
+	private int rID;
+	private int cID;
 
 	public ASTNode(ASTNode.NodeType type) {
 		this.type = type;
@@ -34,9 +37,21 @@ public class ASTNode {
 	public int getID() {
 		return id;
 	}
+	
+	public int getTID() {
+		return tID;
+	}
 
+	public int getFID() {
+		return fID;
+	}
+	
 	public int getRID() {
 		return rID;
+	}
+	
+	public int CID() {
+		return cID;
 	}
 
 	public void setVal(String val) {
@@ -55,7 +70,19 @@ public class ASTNode {
 		this.id = id;
 	}
 
+	public void setTID(int tID) {
+		this.tID = tID;
+	}
+
+	public void setFID(int fID) {
+		this.fID = fID;
+	}
+
 	public void setRID(int rID) {
 		this.rID = rID;
+	}
+
+	public void setCID(int cID) {
+		this.cID = cID;
 	}
 }

@@ -2,8 +2,7 @@ import java.util.LinkedList;
 
 class Token{
   enum TokenType{
-    NUM, PLUS, MINUS, MUL, DIV, LT, LTE, GT, GTE, OP, CP, ID, ASSG, EQ, NEQ, INT, END,
-    OB, CB, IF, WHILE, VOID, PUB, PRIV, CLASS, AND, OR;
+    NUM, PLUS, MINUS, MUL, DIV, LT, LTE, GT, GTE, OP, CP, ID, ASSG, EQ, NEQ, INT, END, OB, CB, IF, WHILE, VOID, PUBLIC, PRIVATE, CLASS, AND, OR;
   }
 
   TokenType tokenType;
@@ -73,22 +72,22 @@ public class Scanner{
       itr = itr + 4;
     }
 
-    // Handling a PUB token
+    // Handling a PUBLIC token
     else if (stream.length() > 5 && stream.substring(itr,itr+6).equals("public")) {
-      ret = new Token(Token.TokenType.PUB, "public");
+      ret = new Token(Token.TokenType.PUBLIC, "public");
       itr = itr + 6;
     }
 
-    // Handling a PRIV token
+    // Handling a PRIVATE token
     else if (stream.length() > 6 && stream.substring(itr,itr+7).equals("private")) {
-      ret = new Token(Token.TokenType.PRIV, "private");
+      ret = new Token(Token.TokenType.PRIVATE, "private");
       itr = itr + 7;
     }
 
     // Handling a CLASS token
-    else if (stream.length() > 3 && stream.substring(itr,itr+3).equals("class")) {
+    else if (stream.length() > 4 && stream.substring(itr,itr+5).equals("class")) {
       ret = new Token(Token.TokenType.CLASS, "class");
-      itr = itr + 4;
+      itr = itr + 5;
     }
     
     // Handling an ID token
@@ -131,6 +130,18 @@ public class Scanner{
     else if (tokChar == '/') {
       ret = new Token(Token.TokenType.DIV, "/");
       itr++;
+    }
+
+    // Handling an AND token
+    else if (stream.length() > 1 && tokChar == '&' && stream.charAt(itr + 1) == '&') {
+      ret = new Token(Token.TokenType.AND, "&&");
+      itr = itr + 2;
+    }
+
+    // Handling an OR token
+    else if (stream.length() > 1 && tokChar == '|' && stream.charAt(itr + 1) == '|') {
+      ret = new Token(Token.TokenType.OR, "||");
+      itr = itr + 2;
     }
     
     // Handling an NEQ token
