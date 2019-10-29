@@ -36,42 +36,21 @@ public class EvalParser {
     }
     ASTNode left = threeAddrId(tokens); // Match ID of program
     ASTNode currNode = left;
-    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP){
+    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
       tokens.remove();
-      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CP){
+      op.setLeft(left);
+      ASTNode right = threeAddrProgLst(tokens); // Match declarations and functions in program
+      op.setRight(right);
+      currNode = op;
+      left = currNode;
+      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
         tokens.remove();
-        if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
-          tokens.remove();
-          op.setLeft(left);
-          ASTNode right = threeAddrProgLst(tokens); // Match declarations and functions in program
-          op.setRight(right);
-          currNode = op;
-          left = currNode;
-          if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
-            tokens.remove();
-          }
-          else {
-            // Check brackets
-            System.out.println("ERROR1: Check brackets");
-            System.exit(1);
-          }
-        }
-        else {
-          // Check brackets
-          System.out.println("ERROR2: Check brackets");
-          System.exit(1);
-        }
       }
       else {
         // Check brackets
-        System.out.println("ERROR3: Check brackets");
+        System.out.println("ERROR1: Check brackets");
         System.exit(1);
       }
-    }
-    else {
-      // Check brackets
-      System.out.println("ERROR4: Check brackets");
-      System.exit(1);
     }
     return currNode;
   }
@@ -173,7 +152,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid declaration type");
       System.exit(1);
     }
-    ASTNode currNode = threeAddrId;
+    ASTNode currNode = threeAddrId(tokens);
     return currNode;
   }
 
@@ -184,7 +163,7 @@ public class EvalParser {
         ASTNode left = threeAddrStmt(tokens);
         ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
         list.setLeft(left);
-        ASTNode right = currNode
+        ASTNode right = currNode;
         list.setRight(right);
         currNode = list;
       }
@@ -747,10 +726,10 @@ public class EvalParser {
 
     if (root.getType() == ASTNode.NodeType.OR) {
       orFlag = true;
-    }
+    } 
 
     str = postorder(root.getLeft(), str, orFlag); 
-    str = postorder(root.getRight(), str, orFlag);
+    str = postorder(root.getRight(), str, false);
     
     if (root.getType() == ASTNode.NodeType.RELOP) {
       if (root.getVal().equals("<")) {
