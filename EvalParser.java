@@ -36,44 +36,23 @@ public class EvalParser {
     }
     ASTNode left = threeAddrId(tokens); // Match ID of program
     ASTNode currNode = left;
-    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP){
+    if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
       tokens.remove();
-      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CP){
+      op.setLeft(left);
+      ASTNode right = threeAddrProgLst(tokens); // Match declarations and functions in program
+      op.setRight(right);
+      currNode = op;
+      left = currNode;
+      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
         tokens.remove();
-        if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OB){
-          tokens.remove();
-          op.setLeft(left);
-          ASTNode right = threeAddrProgLst(tokens); // Match declarations and functions in program
-          op.setRight(right);
-          currNode = op;
-          left = currNode;
-          if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB){
-            tokens.remove();
-          }
-          else {
-            // Check brackets
-            System.out.println("ERROR1: Check brackets");
-            System.exit(1);
-          }
-        }
-        else {
-          // Check brackets
-          System.out.println("ERROR2: Check brackets");
-          System.exit(1);
-        }
-      }
+      }//
       else {
         // Check brackets
-        System.out.println("ERROR3: Check brackets");
+        System.out.println("ERROR1: Check brackets");
         System.exit(1);
       }
     }
-    else {
-      // Check brackets
-      System.out.println("ERROR4: Check brackets");
-      System.exit(1);
-    }
-    return currNode;
+    return currNode;//
   }
 
   public ASTNode threeAddrProgLst(LinkedList<Token> tokens) {
@@ -173,7 +152,7 @@ public class EvalParser {
       System.out.println("ERROR: Invalid declaration type");
       System.exit(1);
     }
-    ASTNode currNode = threeAddrId;
+    ASTNode currNode = threeAddrId(tokens);
     return currNode;
   }
 
@@ -184,7 +163,7 @@ public class EvalParser {
         ASTNode left = threeAddrStmt(tokens);
         ASTNode list = new ASTNode(ASTNode.NodeType.LIST);
         list.setLeft(left);
-        ASTNode right = currNode
+        ASTNode right = currNode;
         list.setRight(right);
         currNode = list;
       }
@@ -241,7 +220,7 @@ public class EvalParser {
     if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OP) {
       tokens.remove();
       
-      cf.setLeft(threeAddrS(tokens));
+      cf.setLeft(threeAddrC(tokens));
       this.tempID = 0;
       cf.setVal("" + last);
       if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CP) {
@@ -255,7 +234,9 @@ public class EvalParser {
 
           tokens.remove();
           cf.setRight(threeAddrStmtLst(tokens));
-          cf.setID(cf.getLeft().getID());
+          
+          cf.setTID(cf.getLeft().getTID());
+          cf.setFID(cf.getLeft().getFID());
            
           currNode = cf;
           if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.CB) {
@@ -301,7 +282,7 @@ public class EvalParser {
       op.setVal("=");
       op.setLeft(left);
       tokens.remove();
-      ASTNode right = threeAddrS(tokens);
+      ASTNode right = threeAddrC(tokens);
       op.setRight(right);
       currNode = op;
       left = currNode;
@@ -316,7 +297,59 @@ public class EvalParser {
     }
     return currNode;
   }
+  
+  public ASTNode threeAddrC(LinkedList<Token> tokens) {
+    ASTNode left = threeAddrS(tokens);
+    ASTNode currNode = left; 
+    while (true) {
+      // Handle comparison operators
+      if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.AND){
+        last = Token.TokenType.AND;
+        ASTNode op = new ASTNode(ASTNode.NodeType.AND);
+        op.setVal("&&");
+        op.setLeft(left);
+        tokens.remove();
+        ASTNode right = threeAddrS(tokens);
+        op.setRight(right);
 
+        op.getRight().setFID(op.getLeft().getFID());
+        op.getRight().setTID(op.getLeft().getTID());
+        op.getLeft().setTID(op.getRight().getTID()+1);
+        op.setTID(op.getRight().getTID());
+        op.setFID(op.getRight().getFID());
+        
+        this.flabelID--;
+
+        currNode = op;
+        left = currNode;
+      }
+      else if (tokens.peek() != null && tokens.peek().tokenType == Token.TokenType.OR) {
+        last = Token.TokenType.OR;
+        ASTNode op = new ASTNode(ASTNode.NodeType.OR);
+        op.setVal("||");
+        op.setLeft(left);
+        tokens.remove();
+        ASTNode right = threeAddrS(tokens);
+        op.setRight(right);
+
+        op.getRight().setTID(op.getLeft().getTID());
+        op.getRight().setFID(op.getLeft().getFID());
+        op.getLeft().setFID(op.getRight().getFID()+1);
+        op.setTID(op.getRight().getTID());
+        op.setFID(op.getRight().getFID());
+ 
+        this.tlabelID--;
+
+        currNode = op;
+        left = currNode;
+      }
+      else
+        break;
+    }
+    
+    return currNode;
+  }
+  
   public ASTNode threeAddrS(LinkedList<Token> tokens) {
     ASTNode left = threeAddrG(tokens); // Left tempID for operation three address generation
     ASTNode currNode = left; 
@@ -330,7 +363,8 @@ public class EvalParser {
         tokens.remove();
         ASTNode right = threeAddrG(tokens);
         op.setRight(right);
-        op.setID(this.tlabelID);
+        op.setTID(this.tlabelID);
+	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
         tempID++;
         currNode = op;
@@ -347,7 +381,8 @@ public class EvalParser {
         tokens.remove();
         ASTNode right = threeAddrG(tokens);
         op.setRight(right);
-        op.setID(this.tlabelID);
+        op.setTID(this.tlabelID);
+	op.setFID(this.flabelID);
         tempID++;
         currNode = op;
         left = currNode;
@@ -375,7 +410,8 @@ public class EvalParser {
         tokens.remove();
         ASTNode right = threeAddrE(tokens);
         op.setRight(right);
-        op.setID(this.tlabelID);
+        op.setTID(this.tlabelID);
+	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
         tempID++;
         currNode = op;
@@ -392,7 +428,8 @@ public class EvalParser {
         tokens.remove();
         ASTNode right = threeAddrE(tokens);
         op.setRight(right);
-        op.setID(this.tlabelID);
+        op.setTID(this.tlabelID);
+	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
         tempID++;
         currNode = op;
@@ -409,7 +446,8 @@ public class EvalParser {
         tokens.remove();
         ASTNode right = threeAddrE(tokens);
         op.setRight(right);
-        op.setID(this.tlabelID);
+        op.setTID(this.tlabelID);
+	op.setFID(this.flabelID);
         // Used to keep the original value intact for returns
         tempID++;
         currNode = op;
@@ -426,7 +464,8 @@ public class EvalParser {
         tokens.remove();
         ASTNode right = threeAddrE(tokens);
         op.setRight(right);
-        op.setID(this.tlabelID);
+        op.setTID(this.tlabelID);
+	op.setFID(this.flabelID);
         tempID++;
         currNode = op;
         left = currNode;
@@ -681,7 +720,8 @@ public class EvalParser {
     return ret;
   }
 
-  private LinkedList<TACObject> postorder(ASTNode root, LinkedList<TACObject> tacs) {
+  private LinkedList<TACObject> postorder(ASTNode root, LinkedList<TACObject> tacs, boolean orFlag) {
+
     if (root == null) {
       return tacs;
     }
@@ -695,8 +735,14 @@ public class EvalParser {
       tacs.add(obj);
     }
 
-    tacs = postorder(root.getLeft(), tacs);
-    if (root.getType() == ASTNode.NodeType.IF || root.getType() == ASTNode.NodeType.WHILE) {
+    if (root.getType() == ASTNode.NodeType.OR) {
+      orFlag = true;
+    } 
+
+    tacs = postorder(root.getLeft(), tacs, orFlag); 
+    tacs = postorder(root.getRight(), tacs, false);
+    
+    if (root.getType() == ASTNode.NodeType.RELOP) {
       if (root.getLeft().getVal().equals("<")) {
         obj = threeAddrRELOP(TACObject.OpType.IF_LT, root.getLeft(), root.getID());
         tacs.add(obj);
@@ -721,19 +767,36 @@ public class EvalParser {
         obj = threeAddrRELOP(TACObject.OpType.IF_NE, root.getLeft(), root.getID());
         tacs.add(obj);
       }
-      str = "falseLabel" + root.getID();
-      obj = new TACObject(TACObject.OpType.GOTO, null, null, str);
-      tacs.add(obj);
-      str = "trueLabel" + root.getID();
-      obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
-      tacs.add(obj);
+
+      if (orFlag) {
+        str = "falseLabel" + root.getFID();
+        obj = new TACObject(TACObject.OpType.GOTO, null, null, str);
+        tacs.add(obj);
+        str = "falseLabel" + root.getFID();
+        obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
+        tacs.add(obj);
+      }
+      else {
+        str = "falseLabel" + root.getFID();
+        obj = new TACObject(TACObject.OpType.GOTO, null, null, str);
+        tacs.add(obj);
+        str = "trueLabel" + root.getTID();
+        obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
+        tacs.add(obj);
+      }
     }
 
-    tacs = postorder(root.getRight(), tacs);
+    if (root.getType() == ASTNode.NodeType.OR) {
+      orFlag = true;
+    } 
+
+    str = postorder(root.getLeft(), str, orFlag); 
+    str = postorder(root.getRight(), str, false);
+
     String str1;
     String str2;
     if (root.getType() == ASTNode.NodeType.OP) {
-      str = "temp" + root.getID(); // + " = ";
+      str = "temp" + root.getID();
       if (root.getLeft().getType() == ASTNode.NodeType.ID)
         str1 = root.getLeft().getVal();
       else
@@ -780,7 +843,7 @@ public class EvalParser {
       tacs.add(obj);
     }
     else if (root.getType() == ASTNode.NodeType.IF) {
-      str = "falseLabel" + root.getID();
+      str = "falseLabel" + root.getFID();
       obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
       tacs.add(obj);
     }
@@ -788,7 +851,7 @@ public class EvalParser {
       str = "repeatLabel" + root.getRID();
       obj = new TACObject(TACObject.OpType.GOTO, null, null, str);
       tacs.add(obj);
-      str = "falseLabel" + root.getID();
+      str = "falseLabel" + root.getFID();
       obj = new TACObject(TACObject.OpType.LABLE, str, null, null);
       tacs.add(obj);
     }
